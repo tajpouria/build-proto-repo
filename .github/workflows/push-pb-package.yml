@@ -1,0 +1,86 @@
+name: Push protocol buffer package
+
+on:
+  push:
+    branches:
+      - "dev"
+      - "master"
+
+jobs:
+  push_pb:
+    strategy:
+      matrix:
+        os: ["ubuntu-16.04"]
+        go: ["1.14"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      ##
+      # Install
+      ##
+
+      - name: Upgrade OS
+        run: apt update && apt install -y ca-certificates openssl git tree
+
+      - name: Install Go ${{ matrix.go }} & gogo/protobuf
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go }}
+      - run: |
+          go get -u github.com/gogo/protobuf/proto
+          go get -u github.com/gogo/protobuf/protoc-gen-gofast
+          go get -u github.com/gogo/protobuf/gogoproto
+
+      - name: Install Protoc
+        run: apt install -y protobuf-compiler
+
+      ##
+      # Build
+      ##
+
+      - uses: actions/checkout@v2
+
+      - name: Make package boiler plate
+        run: |
+          mkdir hoory-iam_dev &&
+          mkdir hoory-iam_dev/proto &&
+          mkdir hoory-iam_dev/go &&
+          mkdir hoory-iam_dev/ts
+
+      - name: Copy proto files
+        run: cp -rf **/**/*.proto hoory-iam_dev/proto
+
+      - name: Build PBs
+        run: |
+          export GOPATH=$(go env GOPATH)
+          export GOBIN=$GOPATH/bin
+          export PATH=$PATH:/usr/local/go/bin
+          export PATH=$PATH:$GOPATH:$GOBIN
+
+          cd hoory-iam_dev/proto
+
+          for file_name in *.proto; do
+            # Build Golang PBs
+            protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
+             --gofast_out=plugins=grpc:../go "./$file_name"
+
+            # Build Typescript PBs
+          done
+
+      - run: tree hoory-iam_dev && pwd
+
+      ##
+      # Push
+      ##
+
+      - name: Push hoory-iam_dev to hoory-protos
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: hoory-iam_dev
+          destination-github-username: tajpouria
+          destination-repository-name: share-proto-repo
+          user-email: iam@hoory.bot
+          target-branch: hoory-iam_dev
