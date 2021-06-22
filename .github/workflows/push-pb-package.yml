@@ -37,7 +37,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
-      - run: npm i -g ts-protoc-gen
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
@@ -66,10 +65,20 @@ jobs:
       - name: Build PBs
         shell: bash
         run: |
+          ##
+          # Setup Golang deps
+          ## 
           GOPATH=$(go env GOPATH)
           GOBIN=$GOPATH/bin
           PATH=$PATH:/usr/local/go/bin
           PATH=$PATH:$GOPATH:$GOBIN
+
+          ##
+          # Setup Node deps
+          ## 
+          npm init -y
+          npm i ts-protoc-gen grpc-tools
+          NPM_BIN_PATH=$(pwd)/node_modules/.bin
 
           cd ${PB_PACKAGE_NAME}/proto
 
@@ -80,16 +89,13 @@ jobs:
             protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
              --gofast_out=plugins=grpc:../go "./$file_name"
 
-            npm list -g 
-
             ##
             # Build grpc-node PBs
             ##
-            NPM_LIST_PATH=$(npm list -g | head -1)
             OUT_DIR="../grpc-node"
             protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
-             --plugin="protoc-gen-ts=${NPM_LIST_PATH}/node_modules/.bin/protoc-gen-ts"\
-             --plugin=protoc-gen-grpc=${NPM_LIST_PATH}/node_modules/.bin/grpc_tools_node_protoc_plugin\
+             --plugin="protoc-gen-ts=${NPM_BIN_PATH}/protoc-gen-ts"\
+             --plugin="protoc-gen-grpc=${NPM_BIN_PATH}/grpc_tools_node_protoc_plugin"\
              --js_out="import_style=commonjs,binary:${OUT_DIR}"\
              --ts_out="service=grpc-node:${OUT_DIR}"\
              --grpc_out="${OUT_DIR}"\
