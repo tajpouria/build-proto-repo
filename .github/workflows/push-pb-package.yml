@@ -28,9 +28,8 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - run: |
-          go get -u github.com/gogo/protobuf/proto
-          go get -u github.com/gogo/protobuf/protoc-gen-gofast
-          go get -u github.com/gogo/protobuf/gogoproto
+          export GO111MODULE=off
+          go get -u github.com/gogo/protobuf/proto github.com/gogo/protobuf/protoc-gen-gofast github.com/gogo/protobuf/gogoproto
 
       - name: Install Protoc
         run: apt install -y protobuf-compiler
@@ -41,15 +40,21 @@ jobs:
 
       - uses: actions/checkout@v2
 
+      - name: Define package name
+        run: |
+          echo ::set-env name=PB_PACKAGE_NAME::${GITHUB_REPOSITORY#*/}@${GITHUB_REF##*/}
+          echo Package name: ${PB_PACKAGE_NAME}
+        shell: bash
+
       - name: Make package boiler plate
         run: |
-          mkdir hoory-iam_dev &&
-          mkdir hoory-iam_dev/proto &&
-          mkdir hoory-iam_dev/go &&
-          mkdir hoory-iam_dev/ts
+          mkdir ${PB_PACKAGE_NAME} &&
+          mkdir ${PB_PACKAGE_NAME}/proto &&
+          mkdir ${PB_PACKAGE_NAME}/go &&
+          mkdir ${PB_PACKAGE_NAME}/cpp
 
       - name: Copy proto files
-        run: cp -rf **/**/*.proto hoory-iam_dev/proto
+        run: cp -rf **/**/*.proto ${PB_PACKAGE_NAME}/proto
 
       - name: Build PBs
         run: |
@@ -58,29 +63,29 @@ jobs:
           export PATH=$PATH:/usr/local/go/bin
           export PATH=$PATH:$GOPATH:$GOBIN
 
-          cd hoory-iam_dev/proto
+          cd ${PB_PACKAGE_NAME}/proto
 
           for file_name in *.proto; do
             # Build Golang PBs
             protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
              --gofast_out=plugins=grpc:../go "./$file_name"
 
-            # Build Typescript PBs
+            # Build C++ PBs
           done
 
-      - run: tree hoory-iam_dev && pwd
+      - run: tree ${PB_PACKAGE_NAME}
 
       ##
       # Push
       ##
 
-      - name: Push hoory-iam_dev to hoory-protos
+      - name: Push ${{ env.PB_PACKAGE_NAME }} to share-proto-repo
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: hoory-iam_dev
-          destination-github-username: tajpouria
+          source-directory: ${{ env.PB_PACKAGE_NAME }}
+          destination-github-username: ${{ github.repository_owner }}
           destination-repository-name: share-proto-repo
-          user-email: iam@hoory.bot
-          target-branch: hoory-iam_dev
+          user-email: ${{ github.actor }}
+          target-branch: ${{ env.PB_PACKAGE_NAME}}
