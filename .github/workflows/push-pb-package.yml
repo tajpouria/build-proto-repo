@@ -45,6 +45,8 @@ jobs:
           echo ::set-env name=PB_PACKAGE_NAME::${GITHUB_REPOSITORY#*/}@${GITHUB_REF##*/}
           echo Package name: ${PB_PACKAGE_NAME}
         shell: bash
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
 
       - name: Make package boiler plate
         run: |
