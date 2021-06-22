@@ -22,7 +22,7 @@ jobs:
       ##
 
       - name: Upgrade OS
-        run:  apt update &&  apt install -y ca-certificates openssl git tree
+        run: sudo apt update && sudo apt install -y ca-certificates openssl git tree
         shell: bash
 
       - name: Install Go & gogo/protobuf
