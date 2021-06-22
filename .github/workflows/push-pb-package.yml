@@ -22,7 +22,7 @@ jobs:
       ##
 
       - name: Upgrade OS
-        run: sudo apt update && sudo apt install -y ca-certificates openssl git tree
+        run:  apt update &&  apt install -y ca-certificates openssl git tree
         shell: bash
 
       - name: Install Go & gogo/protobuf
@@ -81,26 +81,26 @@ jobs:
           NPM_BIN_PATH=$(pwd)/node_modules/.bin
 
           cd ${PB_PACKAGE_NAME}/proto
-
+          ##
+          # Build Golang PBs
+          ##
           for file_name in *.proto; do
-            ##
-            # Build Golang PBs
-            ##
-            protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
+            protoc -I=../../ -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
              --gofast_out=plugins=grpc:../go "./$file_name"
-
-            ##
-            # Build grpc-node PBs
-            ##
-            OUT_DIR="../grpc-node"
-            protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
-             --plugin="protoc-gen-ts=${NPM_BIN_PATH}/protoc-gen-ts"\
-             --plugin="protoc-gen-grpc=${NPM_BIN_PATH}/grpc_tools_node_protoc_plugin"\
-             --js_out="import_style=commonjs,binary:${OUT_DIR}"\
-             --ts_out="service=grpc-node:${OUT_DIR}"\
-             --grpc_out="${OUT_DIR}"\
-             "./$file_name"
           done
+
+          cd ../../
+          ##
+          # Build grpc-node PBs
+          ##
+          OUT_DIR="../grpc-node"
+          protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
+            --plugin="protoc-gen-ts=${NPM_BIN_PATH}/protoc-gen-ts"\
+            --plugin="protoc-gen-grpc=${NPM_BIN_PATH}/grpc_tools_node_protoc_plugin"\
+            --js_out="import_style=commonjs,binary:${OUT_DIR}"\
+            --ts_out="service=grpc-node:${OUT_DIR}"\
+            --grpc_out="${OUT_DIR}"\
+            ./**/**/*.proto
 
       - run: tree ${PB_PACKAGE_NAME}
 
