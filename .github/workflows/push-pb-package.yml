@@ -21,7 +21,7 @@ jobs:
       ##
 
       - name: Upgrade OS
-        run: apt update && apt install -y ca-certificates openssl git tree
+        run: sudo apt update && apt install -y ca-certificates openssl git tree
 
       - name: Install Go ${{ matrix.go }} & gogo/protobuf
         uses: actions/setup-go@v1
