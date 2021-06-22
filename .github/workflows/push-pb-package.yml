@@ -80,27 +80,28 @@ jobs:
           npm i ts-protoc-gen grpc-tools
           NPM_BIN_PATH=$(pwd)/node_modules/.bin
 
-          cd ${PB_PACKAGE_NAME}/proto
           ##
           # Build Golang PBs
           ##
+          cd ${PB_PACKAGE_NAME}/proto
           for file_name in *.proto; do
-            protoc -I=../../ -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
+            protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
              --gofast_out=plugins=grpc:../go "./$file_name"
           done
 
           cd ../../
+          pwd
           ##
           # Build grpc-node PBs
           ##
-          OUT_DIR="../grpc-node"
+          GRPC_NODE_OUT_DIR="${PB_PACKAGE_NAME}/grpc-node"
           protoc -I=. -I=${GOPATH}/src -I=${GOPATH}/src/github.com/gogo/protobuf/protobuf\
-            --plugin="protoc-gen-ts=${NPM_BIN_PATH}/protoc-gen-ts"\
-            --plugin="protoc-gen-grpc=${NPM_BIN_PATH}/grpc_tools_node_protoc_plugin"\
-            --js_out="import_style=commonjs,binary:${OUT_DIR}"\
-            --ts_out="service=grpc-node:${OUT_DIR}"\
-            --grpc_out="${OUT_DIR}"\
-            ./**/**/*.proto
+           --plugin="protoc-gen-ts=${NPM_BIN_PATH}/protoc-gen-ts"\
+           --plugin="protoc-gen-grpc=${NPM_BIN_PATH}/grpc_tools_node_protoc_plugin"\
+           --js_out="import_style=commonjs,binary:${GRPC_NODE_OUT_DIR}"\
+           --ts_out="service=grpc-node:${GRPC_NODE_OUT_DIR}"\
+           --grpc_out="${GRPC_NODE_OUT_DIR}"\
+            **/*pb/*.proto
 
       - run: tree ${PB_PACKAGE_NAME}
 
